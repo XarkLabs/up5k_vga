@@ -59,28 +59,57 @@ no_chg:		lda key_temp
 ; handle caps lock LED status - enter w/ no RX 
 
 .proc _ps2_caps_led_set: near
+			phy
 			lda PS2_RDAT			; clear raw ready
 			lda PS2_CTRL
 			sta cl_state			; update shadow copy
+			ldy	#$00				; init timeout counter
 			ldx #$00				; code to send for caps lock off
 			and #$10
 			beq tx_w1
 			ldx #$04				; code to send for caps lock on
 tx_w1:		lda PS2_CTRL			; wait for TX ready
 			and #$20				; tx_rdy
-			beq tx_w1
-			lda #$ED				; LED command
+			bne	tx_d1
+			dey						; dec timeout
+			beq	done				; if zero, timed-out
+			jsr	slow				; delay
+			bra tx_w1
+tx_d1:		lda #$ED				; LED command
 			sta PS2_DATA			; send
+			ldy	#$00				; init timeout counter
 tx_w2:		lda PS2_CTRL			; wait for TX ready
 			and #$20				; tx_rdy
-			beq tx_w2
+			bne tx_d2
+			dey						; dec timeout
+			beq	done				; if zero, timed-out
+			jsr	slow				; delay
+			bra	tx_w2
+tx_d2:		ldy	#$00				; init timeout counter
 rx_w1:		lda PS2_RSTA			; wait for raw ready
 			and #$01				; rx_rdy
-			beq rx_w1
-			lda PS2_RDAT			; get ACK - don't bother checking
+			bne rx_d1
+			dey						; dec timeout
+			beq	done				; if zero, timed-out
+			jsr	slow				; delay
+			bra	rx_w1
+rx_d1:		lda PS2_RDAT			; get ACK - don't bother checking
 			stx	PS2_DATA			; send capslock status
+			ldy	#$00				; init timeout counter
 tx_w3:		lda PS2_CTRL			; wait for TX ready
 			and #$20				; tx_rdy
-			beq tx_w3
+			bne done
+			dey						; dec timeout
+			beq	done				; if zero, timed-out
+			jsr	slow				; delay
+			bra	tx_w3
+done:		ply
 			rts
+
+slow:		clc
+			lda	#$00
+slow_lp:	adc	#$01
+			bne	slow_lp
+			rts
+
 .endproc
