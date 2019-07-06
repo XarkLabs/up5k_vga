@@ -19,7 +19,7 @@ REAL_HEX =  code.hex
 
 # project stuff
 PROJ = up5k_vga
-PIN_DEF = up5k_vga.pcf
+PIN_DEF = icebreaker.pcf
 SDC = up5k_vga.sdc
 DEVICE = up5k
 
@@ -45,9 +45,9 @@ $(FAKE_HEX):
 	$(YOSYS) -p 'synth_ice40 -dsp -top $(PROJ) -json $@' $(SRC)
 
 %.asc: %.json $(PIN_DEF) 
-	$(NEXTPNR) $(NEXTPNR_ARGS) --$(DEVICE) --json $< --pcf $(PIN_DEF) --asc $@
+	$(NEXTPNR) --timing-allow-fail $(NEXTPNR_ARGS) --$(DEVICE) --json $< --pcf $(PIN_DEF) --asc $@
 
-$(REAL_HEX):
+$(REAL_HEX): ../cc65/Makefile ../cc65/sbc.cfg $(wildcard ../cc65/*.s)
 	$(MAKE) -C ../cc65/
 	cp ../cc65/$(FAKE_HEX) ./$(REAL_HEX)
 		
@@ -64,6 +64,23 @@ prog: $(PROJ).bin
 recode:
 	rm -f $(REAL_HEX) $(PROJ).bin
 	$(MAKE) prog
+	
+icebprog: $(PROJ).bin
+	$(ICEPROG) $(PROJ).bin
+	
+icebroms:
+	$(ICEPROG) $(PROJ).bin
+	$(ICEPROG) -o 0x40000 osibasic.rom
+
+icebdemos:
+	$(MAKE) -C ../demos
+	$(ICEPROG) -o 0x50000 ../demos/basic_programs.rom
+
+icebprogall: icebprog icebroms icebdemos
+
+icebextract:
+	$(ICEPROG) -R655360 -o 0x50000 ../demos/extracted_programs.rom
+	$(MAKE) -C ../demos extract
     
 flash: $(PROJ).bin
 	$(CDCPROG) -w -p /dev/ttyACM0 $<
@@ -72,7 +89,7 @@ lint: $(SRC)
 	$(VERILATOR) --lint-only -Wall --top-module $(PROJ) $(TECH_LIB) $(SRC)
 
 clean:
-	rm -f *.json *.asc *.rpt *.bin
+	rm -f *.json *.asc *.rpt *.bin *.hex
 
 .SECONDARY:
 .PHONY: all prog clean

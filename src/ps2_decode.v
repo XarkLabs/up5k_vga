@@ -31,7 +31,7 @@ module ps2_decode(
 			state <= ST_READY;
 			brk_flag <= 1'b0;
 			e0_code <= 1'b0;
-			caps_lock <= 1'b0;
+			caps_lock <= 1'b1;	// Xark: Default Caps Lock on for OSI
 			control <= 1'b0;
 			shift <= 1'b0;
 			ascii <= 8'h00;

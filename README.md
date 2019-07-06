@@ -1,3 +1,22 @@
+# up5k_vga for IceBreaker FPGA board
+This version is a fork of Emeb's (Eric Brombaugh's) https://github.com/emeb/up5k_vga
+slightly modified to work with the IceBreaker FPGA board
+(https://www.crowdsupply.com/1bitsquared/icebreaker-fpga) and VGA PMOD and PS/2 PMOD
+adapters.
+
+For UART only use, you don't need any PMODs and can use stock IceBreaker (and likely other UPK5 boards).
+
+For VGA and PS/2, I used Xess "StickIt!" VGA PMOD and Xess "StickIt!" PS/2 PMOD
+adapters.
+See http://www.xess.com/shop/product/stickit-vga/ and http://www.xess.com/shop/product/stickit-ps2/ but they aren't available for sale.
+I like these, since you can get 64 VGA colors from a single PMOD port and PS/2 adapter is nice physical size.
+However since these PMODs are difficult to obtain you can also change I/O definitions for other VGA and PS/2 PMODs (e.g., Digilent).
+
+![IceBreaker running up5k_vga](doc/IceBreaker_6502_vga.png)  
+This is a picture of my IceBreaker (prototype) with PMODs running up5k_vga.
+
+*Below is Emeb's origianl README (with a few IceBreaker notes added):*
+
 # up5k_vga
 A complete 65C02 computer with VGA output on a Lattice Ultra Plus FPGA.
 
@@ -14,9 +33,9 @@ This system includes the following features:
 * 2kB ROM for startup and I/O support
 * 8kB Ohio Scientific C1P Microsoft BASIC loaded from spi flash into protected RAM
 * SPI port with access to external flash memory
-* LED PWM driver
+* LED PWM driver (NOTE: Untested on IceBreaker)
 * PS/2 Keyboard port with tx and rx capability
-* 4-voice sound generator with 1-bit sigma-delta output
+* 4-voice sound generator with 1-bit sigma-delta output (NOTE: Not on IceBreaker - yet)
 
 ![board](doc/vga_screenshot.png)
 
@@ -35,7 +54,7 @@ You will also need the following 6502 tools to build the startup ROM:
 
 ## Building
 
-	git clone https://github.com/emeb/up5k_basic.git
+	git clone https://github.com/XarkLabs/up5k_vga.git
 	cd up5k_basic
 	git submodule update --init
 	cd icestorm
@@ -45,6 +64,14 @@ Note: It is not unusual for the make process to fail due to missed timing
 constraints on the 40MHz pixel clock. This is generally not a serious problem
 due to pessimistic timing parameters in the Icestorm tools. Simply rerun "make"
 to complete the build.
+
+NOTE: For IceBreaker board there are some added build targets:
+
+	make icebprog		# build and program FPGA SPI configuration flash
+	make icebroms		# program OSI BASIC rom to SPI flash
+	make icedemos		# combine BASIC demo progrems and program to SPI flash
+	make icebprogall	# all three of the above
+	make icebextract	# read SPI flash from FPGA and extract saved BASIC programs
 
 ## Loading
 
@@ -132,9 +159,13 @@ the FPGA build.
 Parameters are fixed at 115200bps 8/N/1 but the data rate can be easily
 changed over a wide range with simple tweaks to parameters in the acia.v file.
 
+NOTE: When "uploading" BASIC programs over serial, you generally need a delay
+at the end of each line (I found 100ms to work nicely in GtkTerm). If you still
+have trouble, try reducing baud rate to 9600 in "src/acia.v".
+
 ## Video
 
-This is an 800x600 60Hz (40MHz pixel clock) design that seems to work well
+This is an 800x600 60Hz (40MHz pixel clock[*]) design that seems to work well
 with most standard analog VGA monitors. Features are:
 
 * 100x75 text/glyph mode using the OSI 8x8 character generator
@@ -144,7 +175,15 @@ a user-defined 16-color map with 64 possible colors for each entry.
 * 400x300 2-color high resolution graphic mode
 * 2 16kB memory pages
 
+[*] NOTE: For IceBreaker 40Mhz pixel clock is actually 39.75Mhz due to limitations
+using PLL with source 12Mhz clock.  This was close-enough on LCD monitors I tested. 
+
 ![characters](doc/chargen1x.png)
+
+NOTE: For IceBreaker I swapped the "}" and "|" characters in the OSI font as they
+didn't match the normal ASCII order (annoying when using UART).  It is still a bit
+weird, with a "divide" symbol where tilde ("~") shouold be and the tilde where DEL
+should be (at 0x7f).
 
 VGA signal is generated with a 2-bit DAC per R/G/B component as well as the
 horizontal and vertical sync signals driven directly from the FPGA.
@@ -157,6 +196,9 @@ A PS/2 keyboard port is provided which (along with the ACIA) feeds the ASCII
 input. Host to keyboard communication is supported and the caps lock LED should
 toggle on/off to indicate status.
 
+NOTE: On IceBreaker I changed the Caps-Lock to default to enabled (since OSI BASIC
+doesn't understand lowercase commands.)
+
 ![PS/2](doc/PS_2.png)
 
 ## Reset
@@ -164,6 +206,8 @@ toggle on/off to indicate status.
 An active-low "soft" reset input will reset the 6502 system without reconfiguring
 the FPGA. This will return the system the the "D/C/W/M" prompt and allow a warm-
 start into BASIC for recovery from some situations.
+
+NOTE: For IceBreaker reset is mapped to "UBUTTON".
 
 ![Reset](doc/reset.png)
 
@@ -181,6 +225,8 @@ flash into SPRAM and support LOAD and SAVE operations.
 Many FPGAs in the iCE40 family provide hard IP cores for driving RGB LEDs. A
 simple interface to this is provided so the 6502 may control the LED driver.
 
+NOTE: Untested on IceBreaker.
+
 ## Sound Generator
 
 A 4-voice sound generator is provided which supports pitch from 0-32kHz in 
@@ -189,7 +235,21 @@ volume control on each voice. Output is via a 1-bit sigma-delta process
 which requires a simple 1-pole RC filter (100ohm + 0.1uf) lowpass filter
 to smooth the digital pulse waveform down to analog audio.
 
+NOTE: Not implemented on IceBreaker - yet.
+
 ![Audio](doc/audio_filter.png)
+
+## GPIO for LEDs and buttons (on IceBreaker)
+
+IceBreaker maps 65C02 GPIO to the 5 LEDs and 3 buttons on the built in PMOD 2.
+You can set the LEDs from BASIC by poking the low 5 bits of 61952 ($F200) or
+read the buttons by peeking the low 3 bits 61952 ($F200).
+
+For example, to control 3 of the LEDs with the 3 buttons from OSI BASIC:
+
+	10 POKE 61952,PEEK(61952)
+	20 GOTO 10
+
 
 ## Simulating
 
@@ -218,9 +278,17 @@ https://github.com/brajeshwar/Microsoft-BASIC-for-6502-Original-Source-Code-1978
 The ROM files from which I created the .hex file are also available in many
 places - I used this archive: http://www.osiweb.org/misc/OSI600_RAM_ROM.zip
 
+[ NOTE from Xark: For your convienience I have put "osibasic.rom" in this repo (for educational
+purposes only).  It is the "Fixed BASIC3 ROM" from https://www.osiweb.org/software.html
+that corrects the crippling garbage collection bug from the original OSI ROM.
+See https://www.pagetable.com/?p=46 for many Microsoft BASIC details. ]
+
 ## Thanks
 
 Thanks to the developers of all the tools used for this, as well as the authors
 of the IP core I snagged for the 65C02. I've added that as a submodule
 so you'll know where to get it and who to give credit to.
 
+NOTE From Xark: Thanks to Emeb for putting this where I could play with it!
+Also thanks to Piotr Esden-Tempski for making the IceBreaker board (and letting
+me get an early version at his HackADay Supercon 2018 hands-on FPGA session).

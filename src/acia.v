@@ -15,7 +15,7 @@ module acia(
 );
 	// hard-coded bit-rate
 	localparam sym_rate = 115200;
-    localparam clk_freq = 10000000;
+    localparam clk_freq = 9937500; // 39.740/4 Mhz
     localparam sym_cnt = clk_freq / sym_rate;
 	localparam SCW = $clog2(sym_cnt);
 	

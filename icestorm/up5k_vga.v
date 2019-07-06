@@ -1,11 +1,12 @@
 // up5k_vga.v - top level for vga in up5k
 // 05-02-19 E. Brombaugh
+// 07-04-19 Xark (for IceBreaker)
 
 `default_nettype none
 
 module up5k_vga(
 	// 16MHz clock osc
-	input clk_16,
+	input clk_12,	// 12 Mhz clock on IceBreaker
 	
 	// Reset input
 	input NRST,
@@ -14,16 +15,13 @@ module up5k_vga(
 	output [1:0] vga_r, vga_g, vga_b,
 	output vga_vs, vga_hs,
     
-    // composite video
-    output [3:0] vdac,
-	
-    // serial
-    inout RX, TX,
+	// serial
+    	inout RX, TX,
 	
 	// sigma-delta audio
-	output	audio_nmute,
-			audio_l,
-			audio_r,
+// TODO:	output	audio_nmute,
+// TODO:			audio_l,
+// TODO:			audio_r,
 	
 	// SPI0 port
 	inout	spi0_mosi,
@@ -35,24 +33,27 @@ module up5k_vga(
 	inout	ps2_clk,
 			ps2_dat,
 	
-    // diagnostics
-    output [3:0] tst,
-	
 	// gpio
     //input [3:0] pmod,
 	
 	// LED - via drivers
-	output RGB0, RGB1, RGB2
+	output RGB0, RGB1, RGB2,
+
+	// IceBreaker board LEDs (red = booted, green = PS/2 diagnostics)
+	output LEDR_N, LEDG_N,
+
+	// IceBreaker built in PMOD2 LEDs and buttons (gpio)
+	output LED1, LED2, LED3, LED4, LED5,
+	input BTN1, BTN2, BTN3
 );
-	// temp override pmod input
-	wire [3:0] pmod = 4'h0;
 	
-	// Fin=16, Fout=40 (16*(40/16))
+	// NOTE: PLL 12Mhz -> 40Mhz not exact, but 39.75Mhz is "close enough" for monitors tested
+	// Fin=12, Fout=39.75 (12*(52/16))
 	wire clk_4x, pll_lock;
 	SB_PLL40_PAD #(
-		.DIVR(4'b0000),
-		.DIVF(7'b0100111),
-		.DIVQ(3'b100),
+		.DIVR(4'b0000),		// DIVR =  0
+		.DIVF(7'b0110100),	// DIVF = 52
+		.DIVQ(3'b100),		// DIVQ =  4
 		.FILTER_RANGE(3'b001),
 		.FEEDBACK_PATH("SIMPLE"),
 		.DELAY_ADJUSTMENT_MODE_FEEDBACK("FIXED"),
@@ -64,7 +65,7 @@ module up5k_vga(
 		.ENABLE_ICEGATE(1'b0)
 	)
 	pll_inst (
-		.PACKAGEPIN(clk_16),
+		.PACKAGEPIN(clk_12),
 		.PLLOUTCORE(clk_4x),
 		.PLLOUTGLOBAL(),
 		.EXTFEEDBACK(),
@@ -126,7 +127,7 @@ module up5k_vga(
 	
 	// system core
 	wire [3:0] tst;
-	wire [7:0] gpio_o;
+	wire [2:0] gpio_o;
 	wire raw_rx, raw_tx;
 	vga_6502 uut(
 		.clk(clk),
@@ -139,15 +140,15 @@ module up5k_vga(
 		.vga_vs(vga_vs),
 		.vga_hs(vga_hs),
 		
-		.gpio_o(gpio_o),
-		.gpio_i({4'h0,pmod}),
+		.gpio_o({gpio_o, LED5, LED4, LED3, LED2, LED1}),
+		.gpio_i({5'b000000, BTN3, BTN2, BTN1}),
     
         .RX(raw_rx),
         .TX(raw_tx),
 	
-		.snd_nmute(audio_nmute),
-		.snd_l(audio_l),
-		.snd_r(audio_r),
+// TODO:	.snd_nmute(audio_nmute),
+// TODO:	.snd_l(audio_l),
+// TODO:	.snd_r(audio_r),
 	
 		.spi0_mosi(spi0_mosi),
 		.spi0_miso(spi0_miso),
@@ -200,6 +201,8 @@ module up5k_vga(
 		.D_IN_1()
 	);
 	
-	// tie off unused composite video output
-	assign vdac = 4'h0;
+	// Turn on IceBreaker RED led
+	assign LEDR_N = 1'b0;
+	assign LEDG_N = ~(tst[3]|tst[2]|tst[1]|tst[0]); 
+
 endmodule
