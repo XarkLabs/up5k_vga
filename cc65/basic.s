@@ -140,6 +140,7 @@ in_lp:		jsr _chrin				; get character
 			bne ctrl_c_sk			; return if no new char
 ctrl_c_nk:	cmp #$03				; check for ctrl-c
 			bne ctrl_c_sk			; return if not ctrl-c
+			stz	$F600				; Xark: Restore text mode
 			jmp BAS_HNDL_CTRLC		; go to ctrl-c handler
 ctrl_c_sk:	rts
 .endproc
