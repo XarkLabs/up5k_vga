@@ -1,0 +1,85 @@
+# 12 MHz clock
+set_io -nowarn CLK        35
+set_io -nowarn clk_12     35    # up5k_vga alias
+
+# RS232
+set_io -nowarn RX          6
+set_io -nowarn TX          9
+
+# LEDs and Button
+set_io -nowarn BTN_N      10
+set_io -nowarm NRST       10    # up5k_vga alias
+set_io -nowarn LEDR_N     11
+set_io -nowarn LEDG_N     37
+
+# RGB LED Driver
+set_io -nowarn LED_RED_N  39
+set_io -nowarn RGB0       39    # up5k_vga alias
+set_io -nowarn LED_GRN_N  40
+set_io -nowarn RGB1       40    # up5k_vga alias
+set_io -nowarn LED_BLU_N  41
+set_io -nowarn RGB2       41    # up5k_vga alias
+
+# SPI Flash
+set_io -nowarn FLASH_SCK  15
+set_io -nowarn spi0_sclk  15    # up5k_vga alias
+set_io -nowarn FLASH_SSB  16
+set_io -nowarn spi0_cs0   16    # up5k_vga alias
+set_io -nowarn FLASH_IO0  14
+set_io -nowarn spi0_mosi  14    # up5k_vga alias
+set_io -nowarn FLASH_IO1  17
+set_io -nowarn spi0_miso  17    # up5k_vga alias
+set_io -nowarn FLASH_IO2  12
+set_io -nowarn FLASH_IO3  13
+
+# PMOD 1A
+set_io -nowarn P1A1        4
+set_io -nowarn P1A2        2
+set_io -nowarn P1A3       47
+set_io -nowarn P1A4       45
+set_io -nowarn P1A7        3
+set_io -nowarn P1A8       48
+set_io -nowarn P1A9       46
+set_io -nowarn P1A10      44
+# up5k_vga: PMOD 1A used for StickIt! PS/2 PMOD
+set_io -nowarn ps2_dat     3
+set_io -nowarn ps2_clk    48
+
+# PMOD 1B
+set_io -nowarn P1B1       43
+set_io -nowarn P1B2       38
+set_io -nowarn P1B3       34
+set_io -nowarn P1B4       31
+set_io -nowarn P1B7       42
+set_io -nowarn P1B8       36
+set_io -nowarn P1B9       32
+set_io -nowarn P1B10      28
+# up5k_vga: PMOD 1B using "half" of StickIt! VGA PMOD (for 64 color VGA)
+set_io -nowarn vga_r[0]   34
+set_io -nowarn vga_r[1]   36
+set_io -nowarn vga_g[0]   28
+set_io -nowarn vga_g[1]   38
+set_io -nowarn vga_b[0]   31
+set_io -nowarn vga_b[1]   32
+set_io -nowarn vga_vs     43
+set_io -nowarn vga_hs     42
+
+# PMOD 2
+set_io -nowarn P2_1       27
+set_io -nowarn P2_2       25
+set_io -nowarn P2_3       21
+set_io -nowarn P2_4       19
+set_io -nowarn P2_7       26
+set_io -nowarn P2_8       23
+set_io -nowarn P2_9       20
+set_io -nowarn P2_10      18
+
+# LEDs and Buttons (PMOD 2)
+set_io -nowarn LED1       26
+set_io -nowarn LED2       27
+set_io -nowarn LED3       25
+set_io -nowarn LED4       23
+set_io -nowarn LED5       21
+set_io -nowarn BTN1       20
+set_io -nowarn BTN2       19
+set_io -nowarn BTN3       18
