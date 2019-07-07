@@ -8,34 +8,41 @@
 .export		_video_init
 .export		_video_chrout
 
+cursor	=	'_'						; character to use for cursor
+
 ; ---------------------------------------------------------------------------
 ; video initializer
 
 .proc _video_init: near
+			lda #$F3				; white/blue in color region
+			sta	$0206
 			lda vidtab				; initial cursor location
 			sta $0200
-			ldy #2					; two passes through the fill
-			lda #1					; switch to color region
-			sta $F600
-			lda #$F3				; white/blue in color region
-
-; fill loop
-vi_loop:	stz $e0					; init ptr
-			ldx #$D0
-			stx $e1
-vi_lp2:		sta ($e0)				; save to ptr loc
-			inc $e0					; inc low addr
-			bne vi_lp2				; loop until wrap
-			inc $e1					; inc high addr
-			ldx $e1
-			cpx #$F0				; done?
-			bne vi_lp2				; no, keep looping
-			
-vi_lp2_end: stz $F600				; switch to glyph region
-			lda #$20				; space in glyph region
-			dey
-			bne vi_loop				; rerun the fill loop
+			ldx #vi_clr_end-vi_clr	; copy modifiable code to pg 2 RAM
+vi_clrlp0:	lda vi_clr,X
+			sta $0207,X
+			dex
+			bpl vi_clrlp0
+			ldx #$20		; clear $2000
+			ldy #$00		; init offset
+vi_clrlp1:	lda #$01
+			sta	$F600
+			lda	$0206
+			jsr $0207		; set color for page
+			stz	$F600
+			lda	#' '
+			jsr $0207		; set char for page
+			inc $0209		; inc dest high addr
+			dex
+			bne vi_clrlp1	; no, keep looping
 			rts
+
+vi_clr:		sta $D000,Y		; $207 $208=L $209=H
+			iny				; $20a
+			bne	vi_clr		; $20b $20c
+vi_clr_end:	rts				; $20d
+
+
 .endproc
 
 ; ---------------------------------------------------------------------------
@@ -46,16 +53,20 @@ vi_lp2_end: stz $F600				; switch to glyph region
 			pha				; save regs
 			phx
 			phy
+			cmp #$00
 			beq vco_end		; skip to end if null chr
 			cmp #$08
 			beq vco_bksp	; handle backspace
+			cmp #$0C		; ^L clear screen
+			beq	vco_clr
 			cmp #$0A
 			beq vco_lf		; handle linefeed
 			cmp #$0D		; is it a carriage return?
 			bne vco_norm	; no - send normal char to video
 			jsr vco_cr1		; handle carriage return normally
 			bra vco_end		; skip to end
-
+vco_clr:	jsr	_video_init+5
+			bra vco_end
 vco_norm:	sta $0201		; save char in-process
 			jsr vco_vout	; output to video memory
 			inc $0200
@@ -79,7 +90,7 @@ vco_bksp:	ldx $0200		; get current cursor pos
 			jsr vco_vout1
 			dex
 			stx $0200		; decrement cursor loc
-			lda #$5F		; draw new cursor
+			lda #cursor		; draw new cursor
 			jsr vco_vout1
 			bra vco_end		; exit
 
@@ -90,39 +101,56 @@ vco_autocr: jsr vco_cr2		; handle auto cr w/o char
 ; .......................................................................
 ; video text output handle linefeed
 vco_lf:		jsr vco_vout	; output char to video mem
-			lda $FFE0		; get default cursor loc
-			and #$E0		; set 5 lsbits to 0
-			sta $0202		; save
-			ldx #$07		; copy modifiable code to pg 2 RAM
+			ldx #vco_zp_end-vco_zp-1	; copy modifiable code to pg 2 RAM
 vco_lflp0:	lda vco_zp,X
 			sta $0207,X
 			dex
 			bpl vco_lflp0
 			ldx #$EC		; get high addr for 7.5k
-			lda #$64		; set incr to 100
-vco_lfskp:	sta $0208		; save incr as low addr of src in RAM routine
 			ldy #$00		; init ptr
-vco_lflp1:	jsr $0207		; scroll char
-			bne vco_lflp1	; loop 256x
+vco_lflp1:	stz	$F600		; glyph access
+			jsr $0207		; scroll glyphs
+			lda #$01
+			sta	$F600		; color access
+			jsr $0207		; scroll color
 			inc $0209		; inc src high addr
 			inc $020C		; inc dst high addr
-			cpx $0209		; src addr > limit?
+			cpx $0209
 			bne vco_lflp1	; no, keep looping
-vco_lflp2:	jsr $0207		; yes, scroll again
-			cpy $0202		; lsbyte addr done?
-			bne vco_lflp2	; no, keep scrolling
-			lda #$20		; load last line with spaces
-vco_lflp3:	jsr $020A		; 
-			dec $0208		;
-			bne vco_lflp3	; keep looping
-			bra vco_nxt		; done - restore cursor position.
-
+			ldx	#$01
+vco_lflp2:	ldy #$00
+vco_lflp3:	lda $EC64,Y
+			sta	$EC00,Y
+			iny
+			cpy	#$E8
+			bne	vco_lflp3
+			stz	$F600		; glyph access
+			dex
+			bpl	vco_lflp2
+			ldx	#$01
+			stx	$F600		; color access
+			lda	$206
+vco_lflp4:	ldy #100-1		; line length
+vco_lflp5:	sta	$ECE8,Y
+			dey
+			bpl vco_lflp5	; keep looping
+			stz	$F600		; glyph access
+			lda #' '		; load last line with spaces
+			dex
+			bpl	vco_lflp4
+			bra	vco_nxt
 
 ; ---------------------------------------------------------------------------
 ; video text output char to vidmem routine
 vco_vout:	ldx $0200		; get cursor loc
 			lda $0201		; get char
-vco_vout1:	sta $EC00,X		; 1k output
+vco_vout1:	stz	$F600
+			sta $ECE8,X		; 1k output
+			lda #$01
+			sta	$F600
+			lda $0206
+			sta $ECE8,X		; 1k output
+			stz	$F600
 			rts
 
 
@@ -133,19 +161,22 @@ vco_cr1:	jsr vco_vout	; output to video memory
 vco_cr2:	lda $FFE0		; get default cursor location
 			sta $0200		; store it in live location
 vco_cr3:	ldx $0200		; get cursor loc
-			lda $EC00,X		; get contents of video mem @ cursor loc for 1k
+			lda $ECE8,X		; get contents of video mem @ cursor loc for 1k
 			sta $0201		; save it
-			lda #$5F		; underline char
+			lda #cursor		; underline char
 			bra vco_vout1	; output to video memory
 
 
 ; ---------------------------------------------------------------------------
 ; video text output zp scrolling code
 
-vco_zp:		lda $D000,Y
-			sta $D000,Y
-			iny
-			rts
+vco_zp:		lda $D064,Y		; $207 $208=L $209=H
+			sta $D000,Y		; $20a $20b=L $20c=H
+			iny				; $20d
+			bne	vco_zp		; $20e $20f
+			rts				; $210
+vco_zp_end:
+
 .endproc
 
 ; ---------------------------------------------------------------------------
@@ -154,8 +185,8 @@ vco_zp:		lda $D000,Y
 .segment  "VIDTAB"
 
 vidtab:
-.byte		$2c					; $FFE0 - default starting cursor location
+.byte		$0E					; $FFE0 - default starting cursor location
 .byte		$48					; $FFE1 - default width
-.byte		$00					; $FFE0 - vram size: 0 for 1k, !0 for 2k
+.byte		$00					; $FFE2 - vram size: 0 for 1k, !0 for 2k
 
 

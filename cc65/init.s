@@ -69,7 +69,6 @@ bp:
 
 bpdone:		jsr _input				; get char
 			jsr _output				; echo
-			jsr _output				; echo - why needed twice?
 			and #$5F				; convert lowercase to uppercase
 			cmp #'D'				; D ?
 			beq diags				; Diagnostic
