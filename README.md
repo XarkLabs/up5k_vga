@@ -25,13 +25,13 @@ composite video and has been upgraded to a 65C02 CPU core.
 
 This system includes the following features:
 
-* Up to 52kB SRAM with optional write protect (using two of the four available SPRAM cores)
+* Up to 52KB SRAM with optional write protect (using two of the four available SPRAM cores)
 * 8 bits input, 8 bits output
 * 115200bps serial I/O port
 * 800x600 60Hz 64 color VGA with text/glyph, 16-color medium rez, 2 color hi-rez,
-32kB video RAM (2 16kB pages) and original OSI 2kB character ROM
-* 2kB ROM for startup and I/O support
-* 8kB Ohio Scientific C1P Microsoft BASIC loaded from spi flash into protected RAM
+32KB video RAM (2 16KB pages) and original OSI 2KB character ROM
+* 2KB ROM for startup and I/O support
+* 8KB Ohio Scientific C1P Microsoft BASIC loaded from spi flash into protected RAM
 * SPI port with access to external flash memory
 * LED PWM driver (NOTE: Untested on IceBreaker)
 * PS/2 Keyboard port with tx and rx capability
@@ -39,7 +39,7 @@ This system includes the following features:
 
 ![board](doc/vga_screenshot.png)
 
-## prerequisites
+## Prerequisites
 To build this you will need the following FPGA tools
 
 * Icestorm - ice40 FPGA tools
@@ -69,7 +69,7 @@ NOTE: For IceBreaker board there are some added build targets:
 
 	make icebprog		# build and program FPGA SPI configuration flash
 	make icebroms		# program OSI BASIC rom to SPI flash
-	make icedemos		# combine BASIC demo progrems and program to SPI flash
+	make icebdemos		# combine BASIC demo progrems and program to SPI flash
 	make icebprogall	# all three of the above
 	make icebextract	# read SPI flash from FPGA and extract saved BASIC programs
 
@@ -78,7 +78,7 @@ NOTE: For IceBreaker board there are some added build targets:
 I built this system on a custom up5k board and programmed it with a custom
 USB->SPI board that I built so you will definitely need to tweak the programming
 target of the Makefile in the icestorm directory to match your own hardware.
-Note that the 8kB BASIC ROM must now be loaded into the SPI configuration
+Note that the 8KB BASIC ROM must now be loaded into the SPI configuration
 flash memory starting at offset 0x40000 in order for BASIC to run correctly.
 You can find a link to the ROM data at the end of this document.
 
@@ -119,7 +119,7 @@ how to use this version of BASIC here: https://www.pcjs.org/docs/c1pjs/
 
 I've upgraded the LOAD and SAVE commands in BASIC from the original bare-bones
 features found in the OSI ROMs which were intended for simple audio tape
-storage. Now, LOAD/SAVE operate on "slots" of up to 32kB stored in the SPI
+storage. Now, LOAD/SAVE operate on "slots" of up to 32KB stored in the SPI
 Flash memory connected to the FPGA. Use LOAD [n] or SAVE [n] where [n] is an
 integer from 0-99 that refers to the memory slot in which you wish to save
 or load your BASIC program. 
@@ -130,9 +130,21 @@ Slots start at 0x050000 in the flash memory space and are spaced every 0x8000.
 Program text is terminated with 0xFF, so just leave unused bytes in the
 default erased state.
 
+NOTE: There is now a Makefile target "icebdemos" that will package *.bas files
+from the demos directory into a binary file for LOAD.  It also places a
+makeshift "directory" in slot 0, so LOAD 0 will show packaged demos.  There
+is also another target "icebextact" that will download from SPI flash and unpack
+any SAVE'd BASIC programs.
+
 The BASIC line input routine has been patched to allow use of the the Backspace
 key instead of the underline character. The video text output driver has also
 been improved to support proper backspacing.
+
+NOTE: They routines have been further patched to use ESC to discard a line (vs
+OSI use of '@') and allow typing of characters '}' and '~'.  The video output
+routines now also support clear-screen with ^L or CHR$(12) and now update and
+scroll color memory with characters.  The current background/foreground color
+for text output is stored at $0206.
 
 ## C'MON Machine Language Monitor
 
@@ -145,7 +157,7 @@ the C'MON monitor.
 
 ## Boot ROM
 
-The 2kB ROM located at $f800 - $ffff contains the various reset/interrupt
+The 2KB ROM located at $f800 - $ffff contains the various reset/interrupt
 vectors, initialization code, the C'MON monitor and I/O routines needed to
 load and support BASIC.
 
@@ -173,17 +185,17 @@ with most standard analog VGA monitors. Features are:
 a user-defined 16-color map with 64 possible colors for each entry.
 * 200x150 16-color medium resolution graphic mode
 * 400x300 2-color high resolution graphic mode
-* 2 16kB memory pages
+* 2 16KB memory pages
 
-[*] NOTE: For IceBreaker 40Mhz pixel clock is actually 39.75Mhz due to limitations
-using PLL with source 12Mhz clock.  This was close-enough on LCD monitors I tested. 
+NOTE: [*] For IceBreaker 40Mhz pixel clock is actually 39.75Mhz due to limitations
+using PLL with source 12Mhz clock.  This was close-enough for the LCD monitors I
+tested. 
 
 ![characters](doc/chargen1x.png)
 
-NOTE: For IceBreaker I swapped the "}" and "|" characters in the OSI font as they
-didn't match the normal ASCII order (annoying when using UART).  It is still a bit
-weird, with a "divide" symbol where tilde ("~") shouold be and the tilde where DEL
-should be (at 0x7f).
+NOTE: For IceBreaker I moved the "|", "}" and "~" chacters to their proper ASCII
+locations (was confusing typing "wrong" symbols, OSI was "off by one").  The
+"divide symbol" is now mapped to 0x7f (DEL).
 
 VGA signal is generated with a 2-bit DAC per R/G/B component as well as the
 horizontal and vertical sync signals driven directly from the FPGA.
