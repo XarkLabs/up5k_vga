@@ -423,18 +423,21 @@ loadmsg:
 .byte		10,13,"BASIC loaded, patched and locked", 0
 
 ; patch to use backspace instead of underline
+; and ESC instead of '@' for discard line
+; also allows entering '}' and '~' characters
 ; --------- original ---------- ; --- new -------
 ;A364   C9 20      CMP #$20		; cmp #$08	c9 08
 ;A366   90 F1      BCC $A359	; beq $a34b	f0 e3
-;A368   C9 7D      CMP #$7D		; cmp #$20	c9 20
-;A36A   B0 ED      BCS $A359	; bcc $a359	90 ed
-;A36C   C9 40      CMP #$40		; cmp #$7d	c9 7d
-;A36E   F0 E1      BEQ $A351	; bcs $a359	b0 e9
-;A370   C9 5F      CMP #$5F		; cmp #$40	c9 40
-;A372   F0 D7      BEQ $A34B	; beq $a351	f0 dd
+;A368   C9 7D      CMP #$7D		; cmp #$1B	c9 1b
+;A36A   B0 ED      BCS $A359	; beq $a351	f0 e5
+;A36C   C9 40      CMP #$40		; cmp #$20	c9 20
+;A36E   F0 E1      BEQ $A351	; bcs $a359	90 e9
+;A370   C9 5F      CMP #$5F		; cmp #$7F	c9 7f
+;A372   F0 D7      BEQ $A34B	; bcs $a359	b0 e5
+
 PATCHSRC:
-.byte		$c9, $08, $f0, $e3, $c9, $20, $90, $ed
-.byte		$c9, $7d, $b0, $e9, $c9, $40, $f0, $dd
+.byte		$c9, $08, $f0, $e3, $c9, $1b, $f0, $e5
+.byte		$c9, $20, $90, $e9, $c9, $7f, $b0, $e5
 
 ; ---------------------------------------------------------------------------
 ; BASIC vector init table
