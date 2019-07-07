@@ -1,0 +1,10 @@
+*.o
+*.lst
+*.map
+*.hex
+*.asc
+cc65/rom
+icestorm/*.bin
+icestorm/*.json
+demos/00*.txt
+demos/*.rom
