@@ -41,7 +41,7 @@ all: $(PROJ).bin
 $(FAKE_HEX):
 	$(ICEBRAM) -g 8 2048 > $(FAKE_HEX)
 
-%.json: $(SRC) $(FAKE_HEX)
+%.json: $(SRC) $(FAKE_HEX) ../src/chargen_2k.hex
 	$(YOSYS) -p 'synth_ice40 -dsp -top $(PROJ) -json $@' $(SRC)
 
 %.asc: %.json $(PIN_DEF) 
