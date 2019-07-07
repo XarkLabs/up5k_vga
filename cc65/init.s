@@ -21,7 +21,8 @@
 ; ---------------------------------------------------------------------------
 ; Reset vector
 
-_init:		ldx	#$28				; Initialize stack pointer to $0128
+_init:		sei
+			ldx	#$FF				; Initialize stack pointer XARK: was $28	
 			txs
 			cld						; Clear decimal mode
 
@@ -91,7 +92,7 @@ bp_skip_W:	cmp #'M'				; M ?
 			jsr _strout
 			
 			; run the monitor
-			jsr _cmon
+gomon:		jsr _cmon
 			bra _init				; back to full init
 
 ; ---------------------------------------------------------------------------
@@ -133,8 +134,8 @@ irq_exit:	ply						; Restore Y register contents
 ; ---------------------------------------------------------------------------
 ; BRK detected, stop
 
-break:		jmp break				; If BRK is detected, something very bad
-									;   has happened, so loop here forever
+break:		jmp gomon				; If BRK is detected, something very bad
+									;   has happened, jump to monitor
 									
 ; ---------------------------------------------------------------------------
 ; Message Strings
