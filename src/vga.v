@@ -19,7 +19,8 @@ module vga(
 						vga_g,	// 2-bit green data
 						vga_b,	// 2-bit blue data
 	output reg 			vga_vs,	// vertical sync
-						vga_hs	// horizontal sync
+						vga_hs,	// horizontal sync
+	output reg			vga_int	// vsync interrupt
 );
 	// set up timing parameters for 16MHz clock rate
 	localparam MAX_H = 1055;	// 1056 clocks/line
@@ -32,28 +33,33 @@ module vga(
 	localparam VS_WID = 4;		// 3 lines V sync pulse
 	localparam VBP_WID = 23;	// 41 lines V Back Porch
 	localparam VA_WID = 600;	// 600 lines vertical active
-	
+
 	// control register and color LUT
 	reg [5:0] color_lut[15:0];
 	reg [7:0] ctrl, hires;
+	reg	intr, intr_en;
 	// write
 	always @(posedge clk)
 		if(reset)
 		begin
 			// clear control reg
 			ctrl <= 8'h00;
-			
+
+			// clear interrupt flag and enable
+			intr <= 1'b0;
+			intr_en <= 1'b0;
+
 			// hires color mapping
 			hires <= 8'hF3;
 			
 			// 3-bits luma, 3-bits chroma phase, 2-bits chroma gain
 			color_lut[0]  <= 6'b00_00_00;	// black
-			color_lut[1]  <= 6'b11_00_00;	// red
-			color_lut[2]  <= 6'b00_11_00;	// green
-			color_lut[3]  <= 6'b00_00_11;	// blue
-			color_lut[4]  <= 6'b00_11_11;	// cyan
-			color_lut[5]  <= 6'b11_00_11;	// magenta
-			color_lut[6]  <= 6'b11_11_00;	// yellow
+			color_lut[1]  <= 6'b10_00_00;	// red
+			color_lut[2]  <= 6'b00_10_00;	// green
+			color_lut[3]  <= 6'b00_00_10;	// blue
+			color_lut[4]  <= 6'b00_10_10;	// cyan
+			color_lut[5]  <= 6'b10_00_10;	// magenta
+			color_lut[6]  <= 6'b10_10_00;	// yellow
 			color_lut[7]  <= 6'b01_01_01;	// dk gray
 			color_lut[8]  <= 6'b10_10_10;	// lt gray
 			color_lut[9]  <= 6'b11_10_11;	// pink
@@ -64,15 +70,22 @@ module vga(
 			color_lut[14] <= 6'b11_01_11;	// lt purple
 			color_lut[15] <= 6'b11_11_11;	// white
 		end
-		else if((we == 1'b1) && (sel_ctl == 1'b1))
+		else
 		begin
-			if(addr[4]==1'b0)
-				case(addr[3:0])
-					4'h0: ctrl <= din;
-					4'h1: hires <= din;
-				endcase
-			else
-				color_lut[addr[3:0]] <= din[5:0];
+			if((we == 1'b1) && (sel_ctl == 1'b1))
+			begin
+				if(addr[4]==1'b0)
+					case(addr[3:0])
+						4'h0: ctrl <= din;
+						4'h1: hires <= din;
+						4'h2: {intr_en, intr} <= { din[7], 1'b0 };
+					endcase
+				else
+					color_lut[addr[3:0]] <= din[5:0];
+			end
+
+			if(intr_stb)
+				intr <= 1'b1;
 		end
 		
 	// read
@@ -82,6 +95,7 @@ module vga(
 				case(addr[3:0])
 					4'h0: ctl_dout <= ctrl;
 					4'h1: ctl_dout <= hires;
+					4'h2: ctl_dout <= {intr & intr_en, 6'b000000, intr_en};
 					default: ctl_dout <= 8'h00;
 				endcase
 			else
@@ -91,11 +105,12 @@ module vga(
 	wire gc = ctrl[0];
 	wire bank = ctrl[1];
 	wire [1:0] mode = ctrl[3:2];
-	
+
 	// video timing - separate H and V counters
 	reg [10:0] hcnt;
 	reg [9:0] vcnt;
 	reg hs, vs, ha, va;
+	reg intr_stb;
 	always @(posedge clk_4x)
 	begin
 		if(reset)
@@ -106,16 +121,21 @@ module vga(
 			vs <= 1'b0;
 			ha <= 1'b0;
 			va <= 1'b0;
+			intr_stb <= 1'b0;
 		end
 		else
 		begin
+			intr_stb <= 1'b0;
 			// counters
 			if(hcnt == MAX_H)
 			begin
 				// horizontal counter
 				hcnt <= 11'd0;
 				if(vcnt == MAX_V)
+				begin
 					vcnt <= 10'd0;
+					intr_stb <= 1'b1;
+				end
 				else
 					vcnt <= vcnt + 10'd1;
 				
@@ -147,7 +167,7 @@ module vga(
 				ha <= 1'b0;
 		end
 	end
-	
+
 	// character generator
 	localparam ASTART = HFP_WID + HS_WID + HBP_WID;	// start of active area
 	localparam BK_TOP = VFP_WID + VS_WID + VBP_WID; // vertical top
@@ -411,5 +431,6 @@ module vga(
 		vga_b <= active_dly ? b : 2'd0;
 		vga_hs <= hs_dly;
 		vga_vs <= vs_dly;
+		vga_int <= (intr & intr_en);
 	end
 endmodule

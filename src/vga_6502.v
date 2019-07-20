@@ -97,6 +97,7 @@ module vga_6502(
 	
 	// 8kB Video RAM @ D000-EFFF, video control @ F600-F6FF
 	wire [7:0] video_do, vctl_do;
+	wire vga_irq;
 	vga uvid(
 		.clk(clk),				// system clock
 		.clk_4x(clk_4x),		// pixel clock
@@ -112,7 +113,8 @@ module vga_6502(
 		.vga_g(vga_g),			// 2-bit green data
 		.vga_b(vga_b),			// 2-bit blue data
 		.vga_vs(vga_vs),		// vertical sync
-		.vga_hs(vga_hs)			// horizontal sync
+		.vga_hs(vga_hs),		// horizontal sync
+		.vga_int(vga_irq)		// vsync interrupt
 	);
 	
 	// 256B ACIA @ F000-F0FF
@@ -151,7 +153,7 @@ module vga_6502(
 	);
 	
 	// combine IRQs
-	assign CPU_IRQ = acia_irq | wb_irq;
+	assign CPU_IRQ = vga_irq | acia_irq | wb_irq;
 	
 	// combine RDYs
 	assign CPU_RDY = wb_rdy;
