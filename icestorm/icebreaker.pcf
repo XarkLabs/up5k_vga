@@ -42,8 +42,11 @@ set_io -nowarn P1A8       48
 set_io -nowarn P1A9       46
 set_io -nowarn P1A10      44
 # up5k_vga: PMOD 1A used for StickIt! PS/2 PMOD
+#set_io -nowarn ps2_dat     3
+#set_io -nowarn ps2_clk    48
+# up5k_vga: PMOD 1A used for Digilent PS/2 PMOD
 set_io -nowarn ps2_dat     3
-set_io -nowarn ps2_clk    48
+set_io -nowarn ps2_clk     46
 
 # PMOD 1B
 set_io -nowarn P1B1       43
