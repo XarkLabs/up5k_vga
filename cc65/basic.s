@@ -5,6 +5,8 @@
 ; ---------------------------------------------------------------------------
 ;
 
+.include "sbc_defines.inc"
+
 .import		_spi_tx_byte
 .import		_spi_flash_read
 .import		_hexout
@@ -57,7 +59,7 @@ save_vec:	.word		$0000
 
 .proc _basic_init: near
 ; Init jump tab
-			ldx #$0A				; init X 
+			ldx #(5*2)-1				; init X 
 jmplp:		lda init_tab,X
 			sta input_vec,X
 			dex

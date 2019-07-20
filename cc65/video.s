@@ -8,15 +8,15 @@
 .export		_video_init
 .export		_video_chrout
 
-cursor	=	'_'						; character to use for cursor
+CURSR_CHR	=	'_'						; character to use for cursor
 
 ; ---------------------------------------------------------------------------
 ; video initializer
 
 .proc _video_init: near
-			lda #$F3				; white/blue in color region
+			lda #$F3		; white/blue default color
 			sta	$0206
-			lda vidtab				; initial cursor location
+			lda vidtab		; initial cursor location
 			sta $0200
 			ldx #vi_clr_end-vi_clr	; copy modifiable code to pg 2 RAM
 vi_clrlp0:	lda vi_clr,X
@@ -41,8 +41,6 @@ vi_clr:		sta $D000,Y		; $207 $208=L $209=H
 			iny				; $20a
 			bne	vi_clr		; $20b $20c
 vi_clr_end:	rts				; $20d
-
-
 .endproc
 
 ; ---------------------------------------------------------------------------
@@ -83,14 +81,14 @@ vco_end:	ply				; restore regs
 			rts
 ; .......................................................................
 ; video text output handle backspace
-vco_bksp:	ldx $0200		; get current cursor pos
-			cpx $FFE0		; compare to initial pos
+vco_bksp:	ldy $0200		; get current cursor pos
+			cpy $FFE0		; compare to initial pos
 			beq vco_end		; exit w/o change if equal
 			lda #$20		; erase current cursor
 			jsr vco_vout1
-			dex
-			stx $0200		; decrement cursor loc
-			lda #cursor		; draw new cursor
+			dey
+			sty $0200		; decrement cursor loc
+			lda #CURSR_CHR	; draw new cursor
 			jsr vco_vout1
 			bra vco_end		; exit
 
@@ -101,10 +99,10 @@ vco_autocr: jsr vco_cr2		; handle auto cr w/o char
 ; .......................................................................
 ; video text output handle linefeed
 vco_lf:		jsr vco_vout	; output char to video mem
-			ldx #vco_zp_end-vco_zp-1	; copy modifiable code to pg 2 RAM
-vco_lflp0:	lda vco_zp,X
-			sta $0207,X
-			dex
+			ldy #vco_zp_end-vco_zp-1	; copy modifiable code to pg 2 RAM
+vco_lflp0:	lda vco_zp,Y
+			sta $0207,Y
+			dey
 			bpl vco_lflp0
 			ldx #$EC		; get high addr for 7.5k
 			ldy #$00		; init ptr
@@ -142,14 +140,14 @@ vco_lflp5:	sta	$ECE8,Y
 
 ; ---------------------------------------------------------------------------
 ; video text output char to vidmem routine
-vco_vout:	ldx $0200		; get cursor loc
+vco_vout:	ldy $0200		; get cursor loc
 			lda $0201		; get char
 vco_vout1:	stz	$F600
-			sta $ECE8,X		; 1k output
+			sta $ECE8,Y		; 1k output
 			lda #$01
 			sta	$F600
 			lda $0206
-			sta $ECE8,X		; 1k output
+			sta $ECE8,Y		; 1k output
 			stz	$F600
 			rts
 
@@ -160,15 +158,15 @@ vco_vout1:	stz	$F600
 vco_cr1:	jsr vco_vout	; output to video memory
 vco_cr2:	lda $FFE0		; get default cursor location
 			sta $0200		; store it in live location
-vco_cr3:	ldx $0200		; get cursor loc
-			lda $ECE8,X		; get contents of video mem @ cursor loc for 1k
+vco_cr3:	ldy $0200		; get cursor loc
+			lda $ECE8,Y		; get contents of video mem @ cursor loc for 1k
 			sta $0201		; save it
-			lda #cursor		; underline char
+			lda #CURSR_CHR	; cusror char
 			bra vco_vout1	; output to video memory
 
 
 ; ---------------------------------------------------------------------------
-; video text output zp scrolling code
+; video text output zp scrolling code (copied to $0207-$0210)
 
 vco_zp:		lda $D064,Y		; $207 $208=L $209=H
 			sta $D000,Y		; $20a $20b=L $20c=H
@@ -188,5 +186,3 @@ vidtab:
 .byte		$0E					; $FFE0 - default starting cursor location
 .byte		$48					; $FFE1 - default width
 .byte		$00					; $FFE2 - vram size: 0 for 1k, !0 for 2k
-
-

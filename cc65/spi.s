@@ -4,17 +4,7 @@
 ; ---------------------------------------------------------------------------
 ;
 
-; SPI IP registers
-.define		SPI0_BASE	$F100		; Offset of SPI0 IP core 
-.define		SPI1_BASE	$F110		; Offset of SPI1 IP core 
-.define		SPICR0		$08			; Control reg 0
-.define		SPICR1		$09			; Control reg 1
-.define		SPICR2		$0a			; Control reg 2
-.define		SPIBR		$0b			; Baud rate reg
-.define		SPISR		$0c			; Status reg
-.define		SPITXDR		$0d			; TX data reg (r/w)
-.define		SPIRXDR		$0e			; RX data reg (ro)
-.define		SPICSR		$0f			; Chip Select reg
+.include "sbc_defines.inc"
 
 .export		_spi_init
 .export		_spi_tx_byte

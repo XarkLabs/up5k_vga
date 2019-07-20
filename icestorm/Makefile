@@ -47,7 +47,7 @@ $(FAKE_HEX):
 %.asc: %.json $(PIN_DEF) 
 	$(NEXTPNR) --timing-allow-fail $(NEXTPNR_ARGS) --$(DEVICE) --json $< --pcf $(PIN_DEF) --asc $@
 
-$(REAL_HEX): ../cc65/Makefile ../cc65/sbc.cfg $(wildcard ../cc65/*.s)
+$(REAL_HEX): ../cc65/Makefile ../cc65/sbc.cfg $(wildcard ../cc65/*.inc) $(wildcard ../cc65/*.s)
 	$(MAKE) -C ../cc65/
 	cp ../cc65/$(FAKE_HEX) ./$(REAL_HEX)
 		

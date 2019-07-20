@@ -21,11 +21,14 @@
 ;
 ; 03-27-19 E. Brombaugh - modified for up5k 6502 project
 
+.include "sbc_defines.inc"
+
 .feature labels_without_colons
 
 .import		_input
 .import		_output
 .export		_cmon
+.export		_cmonbrk
 
 WIDTH  = 8         ;must be a power of 2
 HEIGHT = 16
@@ -55,7 +58,32 @@ STBUF  = 9 ;uses 9 bytes
 
 .segment	"CODE"
 
-_cmon:
+brkmsg: .BYTE " KRB"
+
+_cmonbrk:
+       PLP                     ; skip P
+       PLA                     ; get PCL
+       SEC
+       SBC #2                  ; subtract 2 to point to BRK
+       STA NUMBER
+       PLA                     ; get PCH
+       SBC #0
+       STA NUMBER+1
+       JSR OUTCR
+       lda #$F1               ; set white on red
+	sta $0206
+       LDX #$03
+brklp: LDA brkmsg,X
+       putc
+       DEX
+       BPL brklp  
+       LDA NUMBER+1
+       JSR OUTHEX
+       LDA NUMBER
+       JSR OUTHEX
+       JSR OUTCR
+
+ _cmon:
 .ifdef SINGLESTEP
        TSX
        STX SREG
@@ -160,7 +188,7 @@ D4     putc
        BNE D2
        CPY #WIDTH*HEIGHT
        BCC DUMP
-	   JMP M1		; EMEB - added to return to prompt
+	JMP M1		; EMEB - added to return to prompt
 M2J
        JMP M2		; branches out of range for 6502 when putc is 3 bytes
 COMMA  LDA NUMBER

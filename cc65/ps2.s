@@ -5,10 +5,7 @@
 ; ---------------------------------------------------------------------------
 ;
 
-.define		PS2_CTRL $F400			; PS2 control register location
-.define		PS2_DATA $F401			; PS2 data register location
-.define		PS2_RSTA $F402			; PS2 raw status register location
-.define		PS2_RDAT $F403			; PS2 raw data register location
+.include "sbc_defines.inc"
 
 .export		_ps2_init
 .export		_ps2_rx_nb

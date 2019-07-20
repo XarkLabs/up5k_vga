@@ -4,8 +4,7 @@
 ; ---------------------------------------------------------------------------
 ;
 
-.define		ACIA_CTRL $F000			; ACIA control register location
-.define		ACIA_DATA $F001			; ACIA data register location
+.include "sbc_defines.inc"
 
 .export		_acia_init
 .export		_acia_tx_chr
