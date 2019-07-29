@@ -191,10 +191,10 @@ montxt:
 ;.byte		"AAAAx - examine 128 bytes @ AAAA", 10, 13
 ;.byte		"AAAA@DD,DD,... - store DD bytes @ AAAA", 10, 13
 ;.byte		"AAAAg - go @ AAAA", 10, 13, 0
-.byte		10, 10, 13, "C'MON Monitor", 10, 10, 13
-.byte		"Examine: AAAAx", 10, 13
-.byte		"Go     : AAAAg", 10, 13
-;.byte		"Modify : AAAA@DD,DD,...", 10, 10, 13
+.byte		10, 10, 13, "C'MON", 10, 10, 13
+.byte		"Exam: AAAAx", 10, 13
+.byte		"Go  : AAAAg", 10, 13
+.byte		"Mod : AAAA@DD,DD,...", 10, 10, 13
 .byte		0
 
 ; ---------------------------------------------------------------------------
