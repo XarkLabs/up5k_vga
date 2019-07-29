@@ -28,6 +28,7 @@
 .export		BAS_COLDSTART
 .export		BAS_WARMSTART
 
+
 ; routines in BASIC that are refrenced here
 BAS_BASE		= $A000		; BASIC base offset
 BAS_WARMSTART	= $A274		; Warm start BASIC
@@ -441,9 +442,6 @@ PATCHSRC:
 .byte		$c9, $08, $f0, $e3, $c9, $1b, $f0, $e5
 .byte		$c9, $20, $90, $e9, $c9, $7f, $b0, $e5
 
-; ---------------------------------------------------------------------------
-; BASIC vector init table
-
 init_tab:
 .addr		_input					; input
 .addr		_output					; output
@@ -451,12 +449,14 @@ init_tab:
 .addr		_load					; load
 .addr		_save					; save
 
+; ---------------------------------------------------------------------------
+; Memory for flash routines
+
 .segment	"HI_RAM"
 flash_buf:	.res $100				; 256 bytes flash data buffer
 temp0:		.res 1					; temp vars
 temp1:		.res 1					; temp vars
 temp2:		.res 1					; temp vars
-;invec_x:	.res 1					; X reg save for input vec
 
 ; ---------------------------------------------------------------------------
 ; table of vectors for BASIC
@@ -468,3 +468,4 @@ temp2:		.res 1					; temp vars
 			JMP (ctrl_c_vec)		;
 			JMP (load_vec)			;
 			JMP (save_vec)			;
+

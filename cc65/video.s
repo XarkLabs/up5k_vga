@@ -7,6 +7,11 @@
 
 .export		_video_init
 .export		_video_chrout
+.export		_intvectbl
+
+.import		_cmon_brk
+.import		_vbl_tick
+.import		_irq_exit
 
 CURSR_CHR	=	'_'						; character to use for cursor
 
@@ -186,3 +191,9 @@ vidtab:
 .byte		$0E					; $FFE0 - default starting cursor location
 .byte		$48					; $FFE1 - default width
 .byte		$00					; $FFE2 - vram size: 0 for 1k, !0 for 2k
+
+_intvectbl:
+.addr		_cmon_brk				; default BRK
+.addr		_irq_exit				; default ACIA IRQ
+.addr		_vbl_tick				; default VBLANK IRQ
+.addr		_irq_exit				; default other IRQ

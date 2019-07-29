@@ -7,6 +7,7 @@
 
 .include "sbc_defines.inc"
 
+.import		_intvectbl
 .import		_acia_init
 .import		_video_init
 .import		_spi_init
@@ -21,12 +22,17 @@
 .import		BAS_COLDSTART
 .import		BAS_WARMSTART
 
+.export		_init
+.export		_cmon_brk
+.export		_vbl_tick
+.export		_irq_exit
+
 .segment	"INT_VEC"
 ; interrupt vectors
 brk_vec:	.word		$0000
-vbl_vec:	.word		$0000
 acia_vec:	.word		$0000
-unkn_vec:	.word		$0000
+vbl_vec:	.word		$0000
+uknirq_vec:	.word		$0000
 
 .segment	"CODE"
 
@@ -39,7 +45,7 @@ _init:      sei                     ; Disable IRQ
             txs
             cld                     ; Clear decimal mode
 			ldy #(4*2)-1
-ini10:		lda	vecintb,Y
+ini10:		lda	_intvectbl,Y
 			sta brk_vec,Y
 			dey
 			bpl	ini10
@@ -135,29 +141,31 @@ _irq_int:
             inx						; skip X pushed on stack
             lda $100,x				; get the status register from the stack
             and #$10				; Isolate B status bit
-            bne break				; If B = 1, BRK detected
+            beq not_brk				; If B = 1, BRK detected
+			jmp (brk_vec)
 
-			lda ACIA_CTRL
+not_brk:	lda ACIA_CTRL
 			bpl	not_acia
-
 			jmp (acia_vec)
 
 not_acia:	lda	VIDINTR				; check for VBLANK
 			bpl	not_vbl				; branch if not
 			sta	VIDINTR				; clear VBLANK interrupt
-
 			jmp (vbl_vec)
 
-not_vbl:	jmp (unkn_vec)
-
-tick:       inc $0216				; test
-			bne irq_exit
-			inc $0217
+not_vbl:	jmp (uknirq_vec)
 
 ; ---------------------------------------------------------------------------
-; Restore state and exit ISR
+; Default timer tick for vblank
 
-irq_exit:	pla						; Restore accumulator contents
+_vbl_tick:	inc $0216				; vblank timer low
+			bne _irq_exit
+			inc $0217				; vblank timer high
+ 			; fall through to exit IRQ
+; ---------------------------------------------------------------------------
+; Restore state and exit IRQ
+
+_irq_exit:	pla						; Restore accumulator contents
 			ply						; Restore Y register contents
 			plx						; Restore X register contents
 			; fall through to rti
@@ -169,7 +177,7 @@ _nmi_int:	rti						; Return from all IRQ/NMI interrupts
 ; ---------------------------------------------------------------------------
 ; BRK detected, stop
 
-break:		pla						; Restore accumulator contents
+_cmon_brk:	pla						; Restore accumulator contents
 			ply						; Restore Y register contents
 			plx						; Restore X register contents
             jmp _cmonbrk
@@ -199,14 +207,9 @@ montxt:
 
 ; ---------------------------------------------------------------------------
 ; table of vectors for 6502
-vecintb:
-.addr		break
-.addr		tick
-.addr		irq_exit
-.addr		irq_exit
 
 .segment  "VECTORS"
 
-.addr      _nmi_int					; NMI vector
-.addr      _init					; Reset vector
-.addr      _irq_int					; IRQ/BRK vector
+.addr      _nmi_int					; $FFFA NMI vector
+.addr      _init					; $FFFC Reset vector
+.addr      _irq_int					; $FFFE IRQ/BRK vector
