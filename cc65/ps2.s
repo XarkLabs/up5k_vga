@@ -15,7 +15,6 @@
 ; storage for key processing @ $0213-$0216
 cl_state:	.byte		$00
 key_temp:	.byte		$00
-x_temp:		.byte		$00
 
 .segment	"CODE"
 ; ---------------------------------------------------------------------------
@@ -41,14 +40,12 @@ x_temp:		.byte		$00
 			ldx #1
 			lda	PS2_DATA			; receive ascii
 nb_no_chr:	sta key_temp
-			stx x_temp
 			lda	PS2_CTRL			; check if capslock changed
 			eor cl_state
 			and #$10
 			beq no_chg				; if no change then return
 			jsr _ps2_caps_led_set	; else update caps led
 no_chg:		lda key_temp
-			ldx x_temp
 			rts
 .endproc
 
@@ -56,6 +53,7 @@ no_chg:		lda key_temp
 ; handle caps lock LED status - enter w/ no RX 
 
 .proc _ps2_caps_led_set: near
+			phx
 			phy
 			lda PS2_RDAT			; clear raw ready
 			lda PS2_CTRL
@@ -101,6 +99,7 @@ tx_w3:		lda PS2_CTRL			; wait for TX ready
 			jsr	slow				; delay
 			bra	tx_w3
 done:		ply
+			plx
 			rts
 
 slow:		clc

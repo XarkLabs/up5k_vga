@@ -81,15 +81,6 @@ jmplp:		lda init_tab,X
 			lda #$00				; source addr 7:0
 			jsr _spi_flash_read
 			
-			; patch backspace key
-			ldx #$10
-			ldy #$00
-ptchlp:		lda PATCHSRC,y
-			sta BAS_PATCHDST,y
-			iny
-			dex
-			bne ptchlp
-			
 			; protect BASIC
 			lda #$0C
 			sta $F203
@@ -221,10 +212,8 @@ sv_hiok:	lda BAS_INTLO		; get low byte
 
 .proc ld_chrin: near
 ; save regs
-			txa
-			pha
-			tya
-			pha
+			phx
+			phy
 			
 ; get next key data
 			ldy $f8
@@ -263,12 +252,8 @@ ld_noread:	cmp #$FF				; end of text?
 			lda #$0d				; final CR
 			
 ; restore regs and return w/ key data
-ld_done:	sta $f7
-			pla
-			tay
-			pla
-			tax
-			lda $f7
+ld_done:	ply
+			plx
 			rts
 .endproc
 
@@ -405,9 +390,9 @@ sfw_end:	rts
 ; text output redirected to save buffer
 
 .proc sv_chrout: near
-			sta temp0		; save a, x, y
-			stx temp1
-			sty temp2
+			pha				; save a, x, y
+			phx
+			phy
 			ldy $fc			; get count
 			sta ($fe),y		; save in src+cnt
 			iny
@@ -416,16 +401,16 @@ sfw_end:	rts
 			jsr	sv_flsh_wrt	; else write full buffer
 			lda #'-'		; send '-' to output for progress
 			jsr _output
-sv_outdone:	ldy temp2		; restore a, x, y
-			ldx temp1
-			lda temp0
+sv_outdone:	ply		; restore a, x, y
+			plx
+			pla
 			rts
 .endproc
 
 loadmsg:
-.byte		10,13,"BASIC loaded, patched and locked", 0
+.byte		10,13,"BASIC loaded and locked", 0
 
-; patch to use backspace instead of underline
+; BASUC pre-patched to use backspace instead of underline
 ; and ESC instead of '@' for discard line
 ; also allows entering '}' and '~' characters
 ; --------- original ---------- ; --- new -------
@@ -437,10 +422,6 @@ loadmsg:
 ;A36E   F0 E1      BEQ $A351	; bcs $a359	90 e9
 ;A370   C9 5F      CMP #$5F		; cmp #$7F	c9 7f
 ;A372   F0 D7      BEQ $A34B	; bcs $a359	b0 e5
-
-PATCHSRC:
-.byte		$c9, $08, $f0, $e3, $c9, $1b, $f0, $e5
-.byte		$c9, $20, $90, $e9, $c9, $7f, $b0, $e5
 
 init_tab:
 .addr		_input					; input
@@ -454,9 +435,6 @@ init_tab:
 
 .segment	"HI_RAM"
 flash_buf:	.res $100				; 256 bytes flash data buffer
-temp0:		.res 1					; temp vars
-temp1:		.res 1					; temp vars
-temp2:		.res 1					; temp vars
 
 ; ---------------------------------------------------------------------------
 ; table of vectors for BASIC
