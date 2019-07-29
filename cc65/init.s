@@ -21,6 +21,16 @@
 .import		BAS_COLDSTART
 .import		BAS_WARMSTART
 
+.segment	"INT_VEC"
+; interrupt vectors
+brk_vec:	.word		$0000
+vbl_vec:	.word		$0000
+acia_vec:	.word		$0000
+unkn_vec:	.word		$0000
+
+.segment	"CODE"
+
+
 ; ---------------------------------------------------------------------------
 ; Reset vector
 
@@ -28,7 +38,11 @@ _init:      sei                     ; Disable IRQ
             ldx #$FF                ; Initialize stack pointer to stack top 
             txs
             cld                     ; Clear decimal mode
-
+			ldy #(4*2)-1
+ini10:		lda	vecintb,Y
+			sta brk_vec,Y
+			dey
+			bpl	ini10
 ; ---------------------------------------------------------------------------
 ; Init ACIA
 			jsr _acia_init
@@ -123,11 +137,20 @@ _irq_int:
             and #$10				; Isolate B status bit
             bne break				; If B = 1, BRK detected
 
-			lda	VIDINTR				; check for VBLANK
-			bpl	irq_exit			; branch if not
+			lda ACIA_CTRL
+			bpl	not_acia
+
+			jmp (acia_vec)
+
+not_acia:	lda	VIDINTR				; check for VBLANK
+			bpl	not_vbl				; branch if not
 			sta	VIDINTR				; clear VBLANK interrupt
 
-            inc $0216				; test
+			jmp (vbl_vec)
+
+not_vbl:	jmp (unkn_vec)
+
+tick:       inc $0216				; test
 			bne irq_exit
 			inc $0217
 
@@ -171,11 +194,16 @@ montxt:
 .byte		10, 10, 13, "C'MON Monitor", 10, 10, 13
 .byte		"Examine: AAAAx", 10, 13
 .byte		"Go     : AAAAg", 10, 13
-.byte		"Modify : AAAA@DD,DD,...", 10, 10, 13
+;.byte		"Modify : AAAA@DD,DD,...", 10, 10, 13
 .byte		0
 
 ; ---------------------------------------------------------------------------
 ; table of vectors for 6502
+vecintb:
+.addr		break
+.addr		tick
+.addr		irq_exit
+.addr		irq_exit
 
 .segment  "VECTORS"
 
