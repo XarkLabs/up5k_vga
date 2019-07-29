@@ -37,7 +37,7 @@ module vga(
 	// control register and color LUT
 	reg [5:0] color_lut[15:0];
 	reg [7:0] ctrl, hires;
-	reg	intr, intr_en;
+	reg	intr, intr_en, intr_clr;
 	// write
 	always @(posedge clk)
 		if(reset)
@@ -46,7 +46,7 @@ module vga(
 			ctrl <= 8'h00;
 
 			// clear interrupt flag and enable
-			intr <= 1'b0;
+			intr_clr <= 1'b0;
 			intr_en <= 1'b0;
 
 			// hires color mapping
@@ -72,20 +72,18 @@ module vga(
 		end
 		else
 		begin
+			intr_clr <= 1'b0;
 			if((we == 1'b1) && (sel_ctl == 1'b1))
 			begin
 				if(addr[4]==1'b0)
 					case(addr[3:0])
 						4'h0: ctrl <= din;
 						4'h1: hires <= din;
-						4'h2: {intr_en, intr} <= { din[7], 1'b0 };
+						4'h2: {intr_en, intr_clr} <= { din[7], 1'b1 };
 					endcase
 				else
 					color_lut[addr[3:0]] <= din[5:0];
 			end
-
-			if(intr_stb)
-				intr <= 1'b1;
 		end
 		
 	// read
@@ -95,7 +93,7 @@ module vga(
 				case(addr[3:0])
 					4'h0: ctl_dout <= ctrl;
 					4'h1: ctl_dout <= hires;
-					4'h2: ctl_dout <= {intr & intr_en, 6'b000000, intr_en};
+					4'h2: ctl_dout <= {intr, 6'b000000, intr_en};
 					default: ctl_dout <= 8'h00;
 				endcase
 			else
@@ -110,7 +108,6 @@ module vga(
 	reg [10:0] hcnt;
 	reg [9:0] vcnt;
 	reg hs, vs, ha, va;
-	reg intr_stb;
 	always @(posedge clk_4x)
 	begin
 		if(reset)
@@ -121,21 +118,17 @@ module vga(
 			vs <= 1'b0;
 			ha <= 1'b0;
 			va <= 1'b0;
-			intr_stb <= 1'b0;
+			intr <= 1'b0;
 		end
 		else
 		begin
-			intr_stb <= 1'b0;
 			// counters
 			if(hcnt == MAX_H)
 			begin
 				// horizontal counter
 				hcnt <= 11'd0;
 				if(vcnt == MAX_V)
-				begin
 					vcnt <= 10'd0;
-					intr_stb <= 1'b1;
-				end
 				else
 					vcnt <= vcnt + 10'd1;
 				
@@ -165,6 +158,11 @@ module vga(
 				ha <= 1'b1;
 			else
 				ha <= 1'b0;
+
+			if((vcnt == MAX_V) && (hcnt == MAX_H))
+				intr <= intr_en;
+			else if (intr_clr)
+				intr <= 1'b0;
 		end
 	end
 
@@ -431,6 +429,6 @@ module vga(
 		vga_b <= active_dly ? b : 2'd0;
 		vga_hs <= hs_dly;
 		vga_vs <= vs_dly;
-		vga_int <= (intr & intr_en);
+		vga_int <= intr;
 	end
 endmodule
