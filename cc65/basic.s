@@ -408,20 +408,7 @@ sv_outdone:	ply		; restore a, x, y
 .endproc
 
 loadmsg:
-.byte		10,13,"BASIC loaded and locked", 0
-
-; BASUC pre-patched to use backspace instead of underline
-; and ESC instead of '@' for discard line
-; also allows entering '}' and '~' characters
-; --------- original ---------- ; --- new -------
-;A364   C9 20      CMP #$20		; cmp #$08	c9 08
-;A366   90 F1      BCC $A359	; beq $a34b	f0 e3
-;A368   C9 7D      CMP #$7D		; cmp #$1B	c9 1b
-;A36A   B0 ED      BCS $A359	; beq $a351	f0 e5
-;A36C   C9 40      CMP #$40		; cmp #$20	c9 20
-;A36E   F0 E1      BEQ $A351	; bcs $a359	90 e9
-;A370   C9 5F      CMP #$5F		; cmp #$7F	c9 7f
-;A372   F0 D7      BEQ $A34B	; bcs $a359	b0 e5
+.byte		10,13,"BASIC loaded and locked.", 0
 
 init_tab:
 .addr		_input					; input
@@ -446,4 +433,3 @@ flash_buf:	.res $100				; 256 bytes flash data buffer
 			JMP (ctrl_c_vec)		;
 			JMP (load_vec)			;
 			JMP (save_vec)			;
-
