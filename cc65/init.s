@@ -81,7 +81,8 @@ ini10:		lda	_intvectbl,Y
 
 ; ---------------------------------------------------------------------------
 ; display boot prompt
-
+			lda #$80
+			sta	VIDINTR				; enable vblank interrupt generation
 bp:
 			cli						; enable IRQ interrupts
 			lda #.lobyte(bootprompt)
