@@ -89,6 +89,7 @@ lint: $(SRC)
 	$(VERILATOR) --lint-only -Wall --top-module $(PROJ) $(TECH_LIB) $(SRC)
 
 clean:
+	$(MAKE) -C ../cc65/ clean
 	rm -f *.json *.asc *.rpt *.bin *.hex
 
 .SECONDARY:
