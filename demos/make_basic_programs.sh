@@ -22,7 +22,11 @@ LINE=110
 SLOT=1
 for f in $BASIC_PROGS
 do
-	FILESIZE=$(stat -c%s "$f")
+	if [[ "$OSTYPE" == "darwin"* ]]; then
+		FILESIZE=$(stat -f "%z" "$f")
+	else
+		FILESIZE=$(stat -c "%s" "$f")
+	fi
 	echo -e >> $DIR "$LINE ?\"LOAD\";$SLOT,Q\$;\"$f\";Q\$,\"(bytes $FILESIZE)\"\r"
 	cat $BLANK >> $OUT
 	((SLOT++))
@@ -35,7 +39,11 @@ echo "BASIC program directory saved in LOAD 0 slot:"
 SLOT=0
 for f in $DIR $BASIC_PROGS
 do
-	FILESIZE=$(stat -c%s "$f")
+	if [[ "$OSTYPE" == "darwin"* ]]; then
+		FILESIZE=$(stat -f "%z" "$f")
+	else
+		FILESIZE=$(stat -c "%s" "$f")
+	fi
 	echo -e "LOAD $SLOT\t\"$f\" ($FILESIZE bytes)"
 	dd  2>/dev/null conv=notrunc,sparse bs=32768 of=$OUT seek=$SLOT if=$f
 	((SLOT++)) 
